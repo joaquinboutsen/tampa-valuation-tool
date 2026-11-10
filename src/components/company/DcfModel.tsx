@@ -16,6 +16,36 @@ import type { DcfDefaults } from "@/lib/finance/dcfDefaults";
 import { peerStats, type CompRow } from "@/lib/finance/comps";
 import { fmtDate, fmtM, fmtMultiple, fmtPct, fmtPrice, fmtShares } from "@/lib/format";
 
+/* -------------------------- remembered edits ---------------------------- */
+
+export interface DcfEdits {
+  a: DcfAssumptions;
+  w: WaccInputs;
+}
+const storageKey = (ticker: string) => `dcf-edits:${ticker}`;
+
+/** Reads edits saved in this browser tab. Ignored if the underlying data has since changed. */
+export function loadDcfEdits(ticker: string, baseRevenue: number): DcfEdits | null {
+  try {
+    const raw = window.sessionStorage.getItem(storageKey(ticker));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as DcfEdits;
+    if (!parsed?.a || !parsed?.w || parsed.a.baseRevenue !== baseRevenue) return null;
+    if (!Array.isArray(parsed.a.growth) || !Array.isArray(parsed.a.ebitdaMargin)) return null;
+    return parsed;
+  } catch {
+    return null; // storage can be unavailable in private windows
+  }
+}
+
+function saveDcfEdits(ticker: string, edits: DcfEdits) {
+  try {
+    window.sessionStorage.setItem(storageKey(ticker), JSON.stringify(edits));
+  } catch {
+    /* not essential */
+  }
+}
+
 /* ------------------------------- inputs --------------------------------- */
 
 /** A number box that shows a decimal (0.074) as a percentage (7.4) or a plain number. */
@@ -88,6 +118,21 @@ export default function DcfModel({ defaults, ticker, provider }: { defaults: Dcf
   const [showHistory, setShowHistory] = useState(false);
 
   const [peerState, setPeerState] = useState<"idle" | "loading" | "none">("idle");
+  const [restored, setRestored] = useState(false);
+
+  // Edits are remembered for this browser tab, so the football field uses the same assumptions.
+  useEffect(() => {
+    const saved = loadDcfEdits(ticker, d0.baseRevenue);
+    if (saved) {
+      setA(saved.a);
+      setW(saved.w);
+    }
+    setRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticker]);
+  useEffect(() => {
+    if (restored) saveDcfEdits(ticker, { a, w });
+  }, [a, w, ticker, restored]);
 
   // Peer median EV/EBITDA for the exit multiple. Loaded only on request, because
   // building a peer table uses a large share of the free market-data allowance.

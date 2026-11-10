@@ -9,6 +9,8 @@ export interface RiskFreeRate {
   tenYear: number;
   /** 20-year yield, kept for reference. */
   twentyYear: number | null;
+  /** 3-month yield: a proxy for what a company earns on its cash. */
+  threeMonth?: number | null;
   /** Date of the observation (YYYY-MM-DD). */
   date: string;
   source: string;
@@ -34,9 +36,10 @@ export function parseTreasuryCsv(csv: string): RiskFreeRate | null {
   const iDate = header.indexOf("Date");
   const i10 = header.indexOf("10 Yr");
   const i20 = header.indexOf("20 Yr");
+  const i3m = header.indexOf("3 Mo");
   if (iDate < 0 || i10 < 0) return null;
 
-  let bestRow: { date: string; ten: number; twenty: number | null } | null = null;
+  let bestRow: { date: string; ten: number; twenty: number | null; threeMonth: number | null } | null = null;
   for (const line of lines.slice(1)) {
     const cells = splitCsvLine(line);
     const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(cells[iDate] ?? "");
@@ -44,12 +47,14 @@ export function parseTreasuryCsv(csv: string): RiskFreeRate | null {
     if (!m || !Number.isFinite(ten) || cells[i10] === "" || ten <= 0) continue;
     const date = `${m[3]}-${m[1]}-${m[2]}`;
     const twenty = i20 >= 0 && cells[i20] !== "" && Number.isFinite(Number(cells[i20])) ? Number(cells[i20]) : null;
-    if (!bestRow || date > bestRow.date) bestRow = { date, ten, twenty };
+    const threeMonth = i3m >= 0 && cells[i3m] !== "" && Number.isFinite(Number(cells[i3m])) ? Number(cells[i3m]) : null;
+    if (!bestRow || date > bestRow.date) bestRow = { date, ten, twenty, threeMonth };
   }
   if (!bestRow) return null;
   return {
     tenYear: bestRow.ten / 100,
     twentyYear: bestRow.twenty === null ? null : bestRow.twenty / 100,
+    threeMonth: bestRow.threeMonth === null ? null : bestRow.threeMonth / 100,
     date: bestRow.date,
     source: "U.S. Department of the Treasury, Daily Treasury Par Yield Curve Rates (10-year)",
     url: TREASURY_PAGE,

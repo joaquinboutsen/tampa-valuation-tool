@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { impliedRanges, MULTIPLE_LABELS, peerStats, type CompRow, type MultipleKey, type TargetBasis } from "@/lib/finance/comps";
 import { positionInSet, type Stats } from "@/lib/finance/stats";
+import { peersKey, readSession, writeSession } from "@/lib/clientStore";
 import { fmtM, fmtMultiple, fmtPct, fmtPrice } from "@/lib/format";
 
 interface CompsResponse {
@@ -53,8 +54,11 @@ export default function CompsPanel({ ticker, initialPeers }: { ticker: string; i
         setData(json);
         // Keep the peer set in the address bar so the page can be shared or bookmarked.
         const url = new URL(window.location.href);
-        if (peers !== null) url.searchParams.set("peers", json.peers.map((p) => p.ticker).join(","));
+        const chosen = peers !== null ? json.peers.map((p) => p.ticker).join(",") : null;
+        if (chosen !== null) url.searchParams.set("peers", chosen);
         else url.searchParams.delete("peers");
+        // Remembered so the football field uses the same peer set.
+        writeSession(peersKey(ticker), chosen);
         window.history.replaceState(null, "", url.toString());
       } catch (e) {
         setError((e as Error).message);
@@ -66,7 +70,8 @@ export default function CompsPanel({ ticker, initialPeers }: { ticker: string; i
   );
 
   useEffect(() => {
-    load(initialPeers ? initialPeers.split(",").filter(Boolean) : null);
+    const remembered = initialPeers ?? readSession(peersKey(ticker));
+    load(remembered ? remembered.split(",").filter(Boolean) : null);
   }, [load, initialPeers]);
 
   const included = useMemo(() => (data ? data.peers.filter((p) => !p.error && !excluded.has(p.ticker)) : []), [data, excluded]);

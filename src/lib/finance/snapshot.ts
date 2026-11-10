@@ -51,7 +51,10 @@ export function buildValuationSnapshot(pkg: CompanyPackage, market: MarketData):
   const ebit = ltmOf("operatingIncome");
   const netIncome = ltmOf("netIncome");
   const eps = ltmOf("epsDiluted");
-  const bookEquity = it?.equityParent.value ?? null;
+  // Book equity attributable to common shareholders. Some companies only tag total
+  // equity including noncontrolling interests, so those are stripped out.
+  const totalEquity = it?.equityTotal.value ?? null;
+  const bookEquity = it?.equityParent.value ?? (totalEquity !== null ? totalEquity - (it?.nci.value ?? 0) : null);
   const ev = pkg.profile.isFinancial ? null : bridge.enterpriseValue;
 
   return {

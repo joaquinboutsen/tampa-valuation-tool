@@ -5,7 +5,7 @@ import { CompanyError } from "@/lib/company";
 import { isValidTickerFormat, normalizeTicker } from "@/lib/sec/tickers";
 import type { CompanyPackage } from "@/lib/types";
 
-export type TabKey = "snapshot" | "comps" | "dcf";
+export type TabKey = "snapshot" | "comps" | "dcf" | "football";
 
 export function Notice({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -74,6 +74,7 @@ const TABS: { key: TabKey; label: string; path: string }[] = [
   { key: "snapshot", label: "Snapshot", path: "" },
   { key: "comps", label: "Trading comps", path: "/comps" },
   { key: "dcf", label: "DCF", path: "/dcf" },
+  { key: "football", label: "Football field", path: "/football-field" },
 ];
 
 /** Company name, key facts, search box and the tab bar shared by every company page. */
@@ -110,7 +111,9 @@ export function CompanyHeader({ pkg, active }: { pkg: CompanyPackage; active: Ta
             {t.label}
           </Link>
         ))}
-        <span className="px-4 py-2 text-sm text-muted/70 whitespace-nowrap">Football field · Merger model (next release)</span>
+        <Link href={`/merger?acquirer=${p.ticker}`} className="px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 -mb-px border-transparent text-muted hover:text-navy">
+          Merger model
+        </Link>
       </nav>
     </>
   );
