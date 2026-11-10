@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getCompanyPackage } from "@/lib/cached";
+import { getCompanyPackage, getMarketData } from "@/lib/cached";
 import { CompanyError } from "@/lib/company";
 import { buildValuationSnapshot } from "@/lib/finance/snapshot";
-import { getMarketData } from "@/lib/market/finnhub";
 import { isValidTickerFormat, normalizeTicker } from "@/lib/sec/tickers";
 
 /** The full data package behind a company page, as JSON (every value with its source). */
@@ -17,7 +16,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ ticker:
     const valuation = buildValuationSnapshot(pkg, market);
     return NextResponse.json(
       { ...pkg, market, valuation },
-      { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=3600" } },
+      // Do not let a CDN hold on to a response that is missing market data.
+      { headers: { "Cache-Control": market.available ? "public, s-maxage=900, stale-while-revalidate=3600" : "no-store" } },
     );
   } catch (e) {
     if (e instanceof CompanyError) {

@@ -275,3 +275,12 @@ describe("summary table", () => {
     expect(get("grossMargin").values[1]).toBeNull();
   });
 });
+
+describe("summary table for financial institutions", () => {
+  it("leaves out gross profit, EBITDA and EBIT", () => {
+    const keys = buildSummary(buildFinancials(testCoFacts()), { financial: true }).income.map((r) => r.key);
+    expect(keys).not.toContain("ebitda");
+    expect(keys).not.toContain("grossProfit");
+    expect(keys).toContain("netIncome");
+  });
+});

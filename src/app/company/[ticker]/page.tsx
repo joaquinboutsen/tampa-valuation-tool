@@ -5,23 +5,21 @@ import EvBridgeCard from "@/components/company/EvBridgeCard";
 import FinancialTable, { SourceList } from "@/components/company/FinancialTable";
 import { RangeBar, Tile } from "@/components/company/Tiles";
 import SearchBox from "@/components/SearchBox";
-import { getCompanyPackage } from "@/lib/cached";
+import { getCompanyPackage, getMarketData } from "@/lib/cached";
 import { CompanyError } from "@/lib/company";
 import { sharesCheck } from "@/lib/finance/checks";
 import { buildValuationSnapshot } from "@/lib/finance/snapshot";
 import { buildSummary } from "@/lib/finance/summary";
 import { autoDecimals, fmtCompact, fmtDate, fmtM, fmtMultiple, fmtPct, fmtPrice } from "@/lib/format";
-import { getMarketData } from "@/lib/market/finnhub";
 import { isValidTickerFormat, normalizeTicker } from "@/lib/sec/tickers";
 import type { CompanyPackage } from "@/lib/types";
 
-/** Pages are rebuilt at most every 15 minutes (market price freshness). */
-export const revalidate = 900;
-
-/** No pages are pre-built; each ticker is generated on first visit, then cached. */
-export async function generateStaticParams() {
-  return [];
-}
+/**
+ * Rendered on each visit from cached data (SEC data: 6 hours; market data:
+ * 15 minutes). The page itself is not cached, so a temporary data-source
+ * failure is never frozen into it.
+ */
+export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ ticker: string }> };
 
@@ -81,7 +79,7 @@ export default async function CompanyPage({ params }: Params) {
   const market = await getMarketData(ticker);
   const snap = buildValuationSnapshot(pkg, market);
   const { profile, financials: fin } = pkg;
-  const summary = buildSummary(fin);
+  const summary = buildSummary(fin, { financial: profile.isFinancial });
   const revenueRow = fin.income.find((r) => r.key === "revenue");
   const decimals = autoDecimals([...(revenueRow?.values.map((c) => c.value) ?? []), snap.bridge.marketCap]);
   const checks = [...pkg.checks];

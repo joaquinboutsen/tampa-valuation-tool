@@ -59,7 +59,13 @@ function growthRow(key: string, label: string, r: Row | undefined, n: number): D
   };
 }
 
-export function buildSummary(fin: Financials): { income: DisplayRow[]; cashflow: DisplayRow[] } {
+/**
+ * @param opts.financial  true for banks, brokers and insurers: gross profit,
+ *                        EBITDA and EBIT are not meaningful and are left out.
+ */
+const HIDDEN_FOR_FINANCIALS = new Set(["grossProfit", "grossMargin", "ebitda", "ebitdaMargin", "operatingIncome", "ebitMargin"]);
+
+export function buildSummary(fin: Financials, opts: { financial?: boolean } = {}): { income: DisplayRow[]; cashflow: DisplayRow[] } {
   const n = fin.fiscalYears.length;
   const get = (rows: Row[], key: string) => rows.find((r) => r.key === key);
   const rev = get(fin.income, "revenue");
@@ -87,7 +93,9 @@ export function buildSummary(fin: Financials): { income: DisplayRow[]; cashflow:
     marginRow("netMargin", "% margin", ni, rev, n),
     moneyRow(eps, n, "normal", true),
     moneyRow(sh, n, "normal", false, "Diluted shares (millions)"),
-  ].filter((r): r is DisplayRow => r !== null);
+  ]
+    .filter((r): r is DisplayRow => r !== null)
+    .filter((r) => !(opts.financial && HIDDEN_FOR_FINANCIALS.has(r.key)));
 
   const cashflow = [
     moneyRow(cfo, n, "normal"),

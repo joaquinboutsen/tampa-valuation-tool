@@ -14,30 +14,36 @@ const BASE = "https://finnhub.io/api/v1";
 export const PROVIDER = "Finnhub";
 export const QUOTE_TTL_SECONDS = 15 * 60;
 
-interface Quote {
+export interface Quote {
   c?: number;
   t?: number;
 }
-interface Profile2 {
+export interface Profile2 {
   shareOutstanding?: number;
   marketCapitalization?: number;
   finnhubIndustry?: string;
   name?: string;
 }
-interface Metrics {
+export interface Metrics {
   metric?: Record<string, number | string | null>;
 }
 
+export class MarketDataError extends Error {}
+
 async function call<T>(path: string, key: string): Promise<T> {
-  const init: RequestInit & { next?: { revalidate: number } } = {
-    headers: { "X-Finnhub-Token": key },
-    signal: AbortSignal.timeout(10_000),
-    next: { revalidate: QUOTE_TTL_SECONDS },
-  };
-  const res = await fetch(`${BASE}${path}`, init);
-  if (res.status === 429) throw new Error("rate-limit");
-  if (res.status === 401 || res.status === 403) throw new Error("auth");
-  if (!res.ok) throw new Error(`http-${res.status}`);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { "X-Finnhub-Token": key },
+      signal: AbortSignal.timeout(10_000),
+      cache: "no-store",
+    });
+  } catch {
+    throw new MarketDataError("The market data provider could not be reached.");
+  }
+  if (res.status === 429) throw new MarketDataError("The market data provider's free-tier limit was reached. Try again in a minute.");
+  if (res.status === 401 || res.status === 403) throw new MarketDataError("The market data provider rejected the API key.");
+  if (!res.ok) throw new MarketDataError(`The market data provider returned an error (HTTP ${res.status}).`);
   return (await res.json()) as T;
 }
 
@@ -82,21 +88,25 @@ export function shapeMarketData(quote: Quote, profile: Profile2, metrics: Metric
   };
 }
 
-export async function getMarketData(ticker: string): Promise<MarketData> {
+export function isConfigured(): boolean {
+  return Boolean(process.env.FINNHUB_API_KEY);
+}
+
+/**
+ * Fetches live market data. Throws MarketDataError on any failure, so that
+ * failures are never stored in the cache (see src/lib/cached.ts).
+ */
+export async function fetchMarketData(ticker: string): Promise<MarketData> {
   const key = process.env.FINNHUB_API_KEY;
-  if (!key) return unavailable("Market data is not configured on this deployment (no API key).");
+  if (!key) throw new MarketDataError("Market data is not configured on this deployment (no API key).");
   const symbol = encodeURIComponent(ticker.replace(/-/g, "."));
-  try {
-    const [quote, profile, metrics] = await Promise.all([
-      call<Quote>(`/quote?symbol=${symbol}`, key),
-      call<Profile2>(`/stock/profile2?symbol=${symbol}`, key),
-      call<Metrics>(`/stock/metric?symbol=${symbol}&metric=all`, key).catch(() => ({}) as Metrics),
-    ]);
-    return shapeMarketData(quote, profile, metrics, new Date().toISOString());
-  } catch (e) {
-    const code = (e as Error).message;
-    if (code === "rate-limit") return unavailable("The market data provider's free-tier limit was reached. Try again in a minute.");
-    if (code === "auth") return unavailable("The market data provider rejected the API key.");
-    return unavailable("The market data provider could not be reached.");
-  }
+  const [quote, profile, metrics] = await Promise.all([
+    call<Quote>(`/quote?symbol=${symbol}`, key),
+    call<Profile2>(`/stock/profile2?symbol=${symbol}`, key),
+    // Metrics (52-week range, beta) are optional: the price still shows without them.
+    call<Metrics>(`/stock/metric?symbol=${symbol}&metric=all`, key).catch(() => ({}) as Metrics),
+  ]);
+  const shaped = shapeMarketData(quote, profile, metrics, new Date().toISOString());
+  if (!shaped.available) throw new MarketDataError(shaped.reason ?? "No price available.");
+  return shaped;
 }
