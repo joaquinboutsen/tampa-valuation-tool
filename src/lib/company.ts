@@ -153,7 +153,16 @@ function pickTenK(sub: Submissions, fin: Financials): FilingRef | null {
   return tenKs.find((f) => fy && f.reportDate === fy.end) ?? tenKs[0] ?? null;
 }
 
-export async function buildCompanyPackage(rawTicker: string): Promise<CompanyPackage> {
+export interface BuildOptions {
+  /**
+   * Light mode skips the business description and segment data (two large
+   * downloads). Used for peers in the comps table, where only the financials,
+   * debt and share count are needed.
+   */
+  light?: boolean;
+}
+
+export async function buildCompanyPackage(rawTicker: string, opts: BuildOptions = {}): Promise<CompanyPackage> {
   let entry;
   try {
     entry = await lookupTicker(rawTicker);
@@ -198,10 +207,13 @@ export async function buildCompanyPackage(rawTicker: string): Promise<CompanyPac
     fin.latestBalance.url = f?.indexUrl ?? filingIndexUrl(cik, fin.latestBalance.accn);
   }
 
+  const skipped = "Not loaded for peer companies.";
   const [debt, segments, description] = await Promise.all([
     loadDebt(cf, fin),
-    loadSegments(cik, latest10K, fin),
-    loadDescription(latest10K),
+    opts.light
+      ? Promise.resolve<SegmentData>({ available: false, reason: skipped, segments: [], reconciling: [], total: null })
+      : loadSegments(cik, latest10K, fin),
+    opts.light ? Promise.resolve<CompanyProfile["description"]>({ text: null, source: skipped }) : loadDescription(latest10K),
   ]);
 
   const profile: CompanyProfile = {

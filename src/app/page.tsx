@@ -21,8 +21,8 @@ function FeaturedCard({ f }: { f: Featured }) {
 const MODULES: { title: string; body: string; live: boolean }[] = [
   { title: "Company snapshot", body: "Business description, five years of financials plus LTM, and a step-by-step bridge from equity value to enterprise value.", live: true },
   { title: "Data quality checks", body: "Automatic tie-outs on the filing data: balance sheet balances, cash flow ties to cash, segments sum to total.", live: true },
-  { title: "Trading comps", body: "Editable peer set with EV/Revenue, EV/EBITDA and P/E, and where the target sits in the range.", live: false },
-  { title: "DCF", body: "Unlevered free cash flow, WACC from CAPM, two terminal value methods and sensitivity tables.", live: false },
+  { title: "Trading comps", body: "Editable peer set with EV/Revenue, EV/EBITDA and P/E, and where the target sits in the range.", live: true },
+  { title: "DCF", body: "Unlevered free cash flow, WACC from CAPM, two terminal value methods and sensitivity tables.", live: true },
   { title: "Football field", body: "Implied share price ranges from each method against the current price.", live: false },
   { title: "Merger model", body: "Pro forma EPS, accretion / dilution and breakeven synergies for any acquirer and target.", live: false },
 ];
@@ -36,8 +36,7 @@ export default function Home() {
             A banker&rsquo;s valuation package for any US public company.
           </h1>
           <p className="mt-4 text-white/80 text-base sm:text-lg max-w-2xl mx-auto">
-            Type a ticker. Get the snapshot, the enterprise value bridge and the tie-outs, built directly from SEC filings with every number
-            sourced.
+            Type a ticker. Get the snapshot, trading comps and a DCF, built directly from SEC filings with every number sourced.
           </p>
           <div className="mt-7 max-w-xl mx-auto">
             <SearchBox autoFocus onDark />
@@ -110,7 +109,8 @@ export default function Home() {
             <h2 className="section-title">Where the numbers come from</h2>
             <ul className="text-sm leading-relaxed space-y-1.5 list-disc pl-5">
               <li>Financial statements: SEC EDGAR, the official filing database (10-K and 10-Q).</li>
-              <li>Share price, 52-week range and beta: Finnhub, a licensed market-data API.</li>
+              <li>Share price, 52-week range, beta and suggested peers: Finnhub, a licensed market-data API.</li>
+              <li>Risk-free rate: the U.S. Treasury&rsquo;s daily 10-year yield.</li>
               <li>Nothing is typed in by hand or estimated. If a figure is missing, the page says &ldquo;not available&rdquo; and why.</li>
               <li>Coverage: US companies that file a 10-K. Foreign filers are not supported.</li>
             </ul>
