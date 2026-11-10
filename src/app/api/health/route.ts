@@ -42,6 +42,13 @@ export async function GET() {
   probes.push(await probe("SEC ticker list (www.sec.gov)", "https://www.sec.gov/files/company_tickers.json", sec));
   probes.push(await probe("SEC company data (data.sec.gov)", "https://data.sec.gov/submissions/CIK0000898293.json", sec));
   probes.push(await probe("SEC filing archive (www.sec.gov/Archives)", "https://www.sec.gov/Archives/edgar/data/898293/000162828026067038/FilingSummary.xml", sec));
+  probes.push(
+    await probe(
+      "U.S. Treasury yield curve",
+      `https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/${new Date().getUTCFullYear()}/all?type=daily_treasury_yield_curve&field_tdr_date_value=${new Date().getUTCFullYear()}&page&_format=csv`,
+      {},
+    ),
+  );
   probes.push(await probe("Finnhub quote", "https://finnhub.io/api/v1/quote?symbol=JBL", key ? { "X-Finnhub-Token": key } : {}));
 
   return NextResponse.json(

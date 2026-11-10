@@ -92,6 +92,19 @@ h3 {
   background: var(--color-card);
 }
 
+.fin-table.tight th,
+.fin-table.tight td {
+  padding: 6px 8px;
+}
+.fin-table.tight tbody td:first-child,
+.fin-table.tight thead th:first-child {
+  min-width: 72px;
+}
+.fin-table.compact th,
+.fin-table.compact td {
+  padding: 6px 8px;
+}
+
 .section-title {
   font-family: var(--font-serif);
   font-size: 1.3rem;

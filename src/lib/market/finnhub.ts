@@ -82,6 +82,10 @@ export function shapeMarketData(quote: Quote, profile: Profile2, metrics: Metric
     high52Date: typeof m["52WeekHighDate"] === "string" ? (m["52WeekHighDate"] as string) : null,
     low52Date: typeof m["52WeekLowDate"] === "string" ? (m["52WeekLowDate"] as string) : null,
     beta: num(m["beta"]),
+    forwardPE: (() => {
+      const f = num(m["forwardPE"]);
+      return f !== null && f > 0 ? f : null;
+    })(),
     providerShares: sharesM !== null && sharesM > 0 ? sharesM * 1e6 : null,
     industry: profile.finnhubIndustry ?? null,
     fetchedAt: nowIso,
@@ -109,4 +113,13 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
   const shaped = shapeMarketData(quote, profile, metrics, new Date().toISOString());
   if (!shaped.available) throw new MarketDataError(shaped.reason ?? "No price available.");
   return shaped;
+}
+
+/** Peer tickers suggested by the provider (same industry classification). Includes the company itself. */
+export async function fetchPeers(ticker: string): Promise<string[]> {
+  const key = process.env.FINNHUB_API_KEY;
+  if (!key) throw new MarketDataError("Market data is not configured on this deployment (no API key).");
+  const list = await call<unknown>(`/stock/peers?symbol=${encodeURIComponent(ticker.replace(/-/g, "."))}`, key);
+  if (!Array.isArray(list)) return [];
+  return list.filter((x): x is string => typeof x === "string").map((x) => x.toUpperCase());
 }

@@ -174,6 +174,8 @@ export interface MarketData {
   high52Date?: string | null;
   low52Date?: string | null;
   beta: number | null;
+  /** Forward P/E as published by the data provider (based on analyst estimates). */
+  forwardPE?: number | null;
   /** Shares outstanding per the data provider (units, not millions). */
   providerShares: number | null;
   industry?: string | null;

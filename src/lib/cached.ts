@@ -10,7 +10,8 @@
  */
 import { unstable_cache } from "next/cache";
 import { buildCompanyPackage } from "./company";
-import { fetchMarketData, MarketDataError, QUOTE_TTL_SECONDS, unavailable } from "./market/finnhub";
+import { fetchMarketData, fetchPeers, MarketDataError, QUOTE_TTL_SECONDS, unavailable } from "./market/finnhub";
+import { fetchRiskFreeRate, type RiskFreeRate } from "./market/treasury";
 import type { CompanyPackage, MarketData } from "./types";
 import { normalizeTicker } from "./sec/tickers";
 
@@ -34,5 +35,32 @@ export async function getMarketData(rawTicker: string): Promise<MarketData> {
     return await unstable_cache(() => fetchMarketData(ticker), ["market-data-v1", ticker], { revalidate: QUOTE_TTL_SECONDS })();
   } catch (e) {
     return unavailable(e instanceof MarketDataError ? e.message : "The market data provider could not be reached.");
+  }
+}
+
+/** Lighter company package for peers (no description or segments). Cached 6 hours. */
+export function getPeerPackage(rawTicker: string): Promise<CompanyPackage> {
+  const ticker = normalizeTicker(rawTicker);
+  return unstable_cache(() => buildCompanyPackage(ticker, { light: true }), ["company-light-v1", ticker], {
+    revalidate: COMPANY_TTL_SECONDS,
+  })();
+}
+
+/** Provider-suggested peers, cached for a day. Returns [] if unavailable. */
+export async function getSuggestedPeers(rawTicker: string): Promise<string[]> {
+  const ticker = normalizeTicker(rawTicker);
+  try {
+    return await unstable_cache(() => fetchPeers(ticker), ["peers-v1", ticker], { revalidate: 86_400 })();
+  } catch {
+    return [];
+  }
+}
+
+/** 10-year Treasury yield, cached 6 hours. Null if the Treasury site cannot be reached. */
+export async function getRiskFreeRate(): Promise<RiskFreeRate | null> {
+  try {
+    return await unstable_cache(() => fetchRiskFreeRate(), ["treasury-10y-v1"], { revalidate: 6 * 3600 })();
+  } catch {
+    return null;
   }
 }

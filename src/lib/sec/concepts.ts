@@ -88,6 +88,14 @@ export const INSTANT_CONCEPTS = {
   receivables: ["AccountsReceivableNetCurrent", "AccountsAndOtherReceivablesNetCurrent", "ReceivablesNetCurrent"],
   inventory: ["InventoryNet"],
   payables: ["AccountsPayableCurrent", "AccountsPayableTradeCurrent", "AccountsPayableAndAccruedLiabilitiesCurrent"],
+  /** Current debt, used to strip financing out of working capital. */
+  debtCurrentCombined: ["DebtCurrent", "ShortTermDebtAndCurrentPortionOfLongTermDebt"],
+  debtCurrentMaturities: [
+    "LongTermDebtCurrent",
+    "LongTermDebtAndCapitalLeaseObligationsCurrent",
+    "LongTermDebtAndFinanceLeaseObligationsCurrent",
+  ],
+  debtShortTerm: ["ShortTermBorrowings", "CommercialPaper", "OtherShortTermBorrowings", "NotesPayableCurrent"],
   operatingLeaseCurrent: ["OperatingLeaseLiabilityCurrent"],
   operatingLeaseNoncurrent: ["OperatingLeaseLiabilityNoncurrent"],
 } as const;

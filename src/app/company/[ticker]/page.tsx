@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import ChecksPanel from "@/components/company/ChecksPanel";
 import EvBridgeCard from "@/components/company/EvBridgeCard";
 import FinancialTable, { SourceList } from "@/components/company/FinancialTable";
 import { RangeBar, Tile } from "@/components/company/Tiles";
-import SearchBox from "@/components/SearchBox";
-import { getCompanyPackage, getMarketData } from "@/lib/cached";
-import { CompanyError } from "@/lib/company";
+import { getMarketData } from "@/lib/cached";
 import { sharesCheck } from "@/lib/finance/checks";
 import { buildValuationSnapshot } from "@/lib/finance/snapshot";
 import { buildSummary } from "@/lib/finance/summary";
 import { autoDecimals, fmtCompact, fmtDate, fmtM, fmtMultiple, fmtPct, fmtPrice } from "@/lib/format";
-import { isValidTickerFormat, normalizeTicker } from "@/lib/sec/tickers";
-import type { CompanyPackage } from "@/lib/types";
+import { normalizeTicker } from "@/lib/sec/tickers";
+import { CompanyHeader, resolveCompany } from "./shared";
 
 /**
  * Rendered on each visit from cached data (SEC data: 6 hours; market data:
@@ -29,52 +26,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return { title: `${t} valuation`, description: `Company snapshot, enterprise value bridge and data-quality checks for ${t}, built from SEC filings.` };
 }
 
-function Notice({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
-      <h1 className="text-2xl font-semibold text-navy">{title}</h1>
-      <div className="mt-3 text-muted leading-relaxed">{children}</div>
-      <div className="mt-6">
-        <SearchBox autoFocus />
-      </div>
-      <p className="mt-4 text-sm">
-        <Link href="/" className="link">
-          Back to the home page
-        </Link>
-      </p>
-    </div>
-  );
-}
-
 export default async function CompanyPage({ params }: Params) {
   const { ticker: raw } = await params;
-  const decoded = decodeURIComponent(raw);
-  if (!isValidTickerFormat(decoded)) {
-    return (
-      <Notice title="That does not look like a ticker">
-        Tickers are 1 to 5 letters, such as JBL or MSFT. Try searching by company name instead.
-      </Notice>
-    );
-  }
-  const ticker = normalizeTicker(decoded);
-
-  let pkg: CompanyPackage;
-  try {
-    pkg = await getCompanyPackage(ticker);
-  } catch (e) {
-    if (e instanceof CompanyError && e.code === "not-found") {
-      return (
-        <Notice title={`No US-listed company found for "${ticker}"`}>
-          {e.message} Check the spelling, or search by company name below.
-        </Notice>
-      );
-    }
-    if (e instanceof CompanyError && e.code === "unsupported") {
-      return <Notice title={`${ticker} is not supported`}>{e.message}</Notice>;
-    }
-    // Temporary upstream problems are not cached: the error page offers a retry.
-    throw e;
-  }
+  const resolved = await resolveCompany(raw);
+  if (!resolved.ok) return resolved.notice;
+  const { ticker, pkg } = resolved;
 
   const market = await getMarketData(ticker);
   const snap = buildValuationSnapshot(pkg, market);
@@ -85,26 +41,9 @@ export default async function CompanyPage({ params }: Params) {
   const checks = [...pkg.checks];
   if (market.available) checks.push(sharesCheck(fin.coverShares.value, fin.coverShares.asOf, market.providerShares, market.provider));
 
-  const fye = profile.fiscalYearEnd && profile.fiscalYearEnd.length === 4 ? `${profile.fiscalYearEnd.slice(0, 2)}/${profile.fiscalYearEnd.slice(2)}` : null;
-
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        <div className="min-w-0">
-          <div className="text-xs uppercase tracking-wider text-muted">
-            {profile.exchanges[0] ? `${profile.exchanges[0]}: ` : ""}
-            {profile.ticker}
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-semibold text-navy leading-tight">{profile.name}</h1>
-          <div className="mt-1 text-sm text-muted">
-            {[profile.city && `${titleCase(profile.city)}, ${profile.state}`, profile.sicDescription, fye && `Fiscal year ends ${fye}`].filter(Boolean).join(" · ")}
-          </div>
-        </div>
-        <div className="w-full lg:w-80 shrink-0">
-          <SearchBox compact />
-        </div>
-      </div>
+      <CompanyHeader pkg={pkg} active="snapshot" />
 
       {/* Description */}
       <div className="mt-5 border-l-2 border-gold pl-4">
@@ -214,7 +153,6 @@ export default async function CompanyPage({ params }: Params) {
         <a href="#quality" className="link">
           Data quality
         </a>
-        <span className="text-muted">Trading comps, DCF, football field and merger model: coming in the next releases</span>
       </nav>
 
       {/* EV bridge */}
@@ -339,13 +277,4 @@ export default async function CompanyPage({ params }: Params) {
       </p>
     </div>
   );
-}
-
-function titleCase(s: string): string {
-  return s
-    .toLowerCase()
-    .split(" ")
-    .map((w) => (w.length <= 2 && w !== "st" ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)))
-    .join(" ")
-    .replace(/\bSt\b/, "St.");
 }

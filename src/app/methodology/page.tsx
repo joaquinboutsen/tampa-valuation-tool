@@ -35,6 +35,9 @@ export default function Methodology() {
           ["ebitda", "EBITDA"],
           ["ev", "Enterprise value"],
           ["multiples", "Multiples"],
+          ["comps", "Trading comps"],
+          ["dcf", "DCF"],
+          ["wacc", "WACC"],
           ["quality", "Data quality checks"],
           ["financials", "Financial institutions"],
           ["limits", "Limitations"],
@@ -163,8 +166,140 @@ P / E        = share price ÷ LTM diluted EPS`}</Formula>
         <p>
           Enterprise value is paired with measures earned before interest (revenue, EBITDA, EBIT), which belong to all capital providers.
           Share price is paired with EPS, which belongs to shareholders only. A multiple is shown as &ldquo;n/m&rdquo; (not meaningful) when the
-          earnings measure is zero or negative.
+          earnings measure is zero or negative, or when the result is above 100x, which only happens when earnings are close to zero.
         </p>
+      </Section>
+
+      <Section id="comps" title="Trading comparables">
+        <p>
+          Comps estimate value from what investors currently pay for similar companies. The target and every peer are run through exactly
+          the same calculation, from their own SEC filings and the same price source, so the multiples are like for like.
+        </p>
+        <ul className="list-disc pl-5 space-y-2">
+          <li>
+            <span className="font-semibold">Peer set.</span> The starting list comes from Finnhub&rsquo;s industry classification. It is a
+            starting point only and is often imperfect: peers can be unticked, removed or added on the page, up to ten at a time.
+          </li>
+          <li>
+            <span className="font-semibold">Statistics.</span> Minimum, 25th percentile, median, 75th percentile and maximum, using
+            Excel&rsquo;s inclusive percentile method (linear interpolation between ranked values). Not-meaningful multiples are left out
+            rather than counted as zero.
+          </li>
+          <li>
+            <span className="font-semibold">Forward P/E</span> is the figure Finnhub publishes from analyst estimates. It is shown as
+            provided and is not recalculated. Forward EV / EBITDA is not shown, because consensus EBITDA estimates are not available from a
+            free, licensed source.
+          </li>
+          <li>
+            <span className="font-semibold">Implied share price.</span> The peer 25th percentile, median and 75th percentile multiples are
+            applied to the target&rsquo;s own figures:
+          </li>
+        </ul>
+        <Formula>{`From an EV multiple:  (multiple × target metric − debt − preferred − noncontrolling interests + cash) ÷ shares
+From a P/E multiple:  multiple × target EPS`}</Formula>
+        <p>
+          The median is used as the central figure rather than the mean because one outlier can distort an average of eight or ten
+          companies.
+        </p>
+      </Section>
+
+      <Section id="dcf" title="Discounted cash flow">
+        <p>
+          A DCF values a company by the cash it is expected to generate, discounted back to today. This is an unlevered DCF: it values the
+          whole business before financing, then subtracts net debt to reach equity value.
+        </p>
+        <Formula>{`Unlevered free cash flow = EBIT × (1 − tax rate)
+                         + depreciation and amortization
+                         − capital expenditures
+                         − increase in net working capital
+
+Terminal value (perpetuity growth) = final-year cash flow × (1 + g) ÷ (WACC − g)
+Terminal value (exit multiple)     = final-year EBITDA × EV / EBITDA multiple
+
+Enterprise value = sum of each year's cash flow ÷ (1 + WACC)^year
+                 + terminal value ÷ (1 + WACC)^5
+
+Equity value = enterprise value − debt − preferred − noncontrolling interests + cash
+Value per share = equity value ÷ shares outstanding`}</Formula>
+        <p className="font-semibold">Default assumptions and how each is derived</p>
+        <ul className="list-disc pl-5 space-y-2">
+          <li>
+            <span className="font-semibold">Starting point.</span> LTM revenue. Year 1 is the twelve months after the latest reported
+            quarter, so the cash flows, the balance sheet used for net debt and the valuation date all line up.
+          </li>
+          <li>
+            <span className="font-semibold">Revenue growth.</span> Year 1 uses the compound annual growth rate of revenue over the last
+            three fiscal years, kept between −5% and +15%. Growth then moves in a straight line to the terminal rate by year 5.
+          </li>
+          <li>
+            <span className="font-semibold">EBITDA margin, D&amp;A, capital expenditures and working capital.</span> Each is the average of
+            the last three fiscal years, as a percentage of revenue, held flat.
+          </li>
+          <li>
+            <span className="font-semibold">Net working capital</span> is current assets excluding cash, less current liabilities excluding
+            debt. Each year&rsquo;s investment is the change in that balance as revenue grows.
+          </li>
+          <li>
+            <span className="font-semibold">Tax rate.</span> Total income tax divided by total pre-tax income over the last three fiscal
+            years. If that falls outside 10% to 35%, or cannot be calculated, the 21% U.S. federal statutory rate is used.
+          </li>
+          <li>
+            <span className="font-semibold">Terminal growth.</span> 2.5% by default: roughly long-run inflation plus modest real growth.
+            This is a judgment and is labelled as one.
+          </li>
+          <li>
+            <span className="font-semibold">Exit multiple.</span> The company&rsquo;s own current EV / LTM EBITDA by default, with one click
+            to switch to the peer median from the comps.
+          </li>
+        </ul>
+        <p>
+          The page shows each method&rsquo;s answer in the other&rsquo;s terms: the exit multiple implied by the growth method, and the
+          perpetual growth rate implied by the exit multiple. If the two disagree badly, one of the assumptions is wrong, and the page says
+          so. Two sensitivity tables show the value per share across WACC and terminal growth, and across WACC and the exit multiple.
+        </p>
+        <p className="font-semibold">Simplifications</p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li>Cash flows are discounted as if received at the end of each year. A mid-year convention would give a slightly higher value.</li>
+          <li>Stock-based compensation is not added back. It is treated as a real cost of running the business.</li>
+          <li>No tax benefit is assumed in a loss-making year.</li>
+          <li>The share count is basic, so the value per share is slightly overstated for companies with many options outstanding.</li>
+          <li>A DCF is not produced for banks, brokers and insurers (see below).</li>
+        </ul>
+      </Section>
+
+      <Section id="wacc" title="Cost of capital (WACC)">
+        <Formula>{`Cost of equity = risk-free rate + beta × equity risk premium        (CAPM)
+After-tax cost of debt = pre-tax cost of debt × (1 − tax rate)
+
+WACC = equity ÷ (equity + debt) × cost of equity
+     + debt ÷ (equity + debt) × after-tax cost of debt`}</Formula>
+        <ul className="list-disc pl-5 space-y-2">
+          <li>
+            <span className="font-semibold">Risk-free rate.</span> The 10-year U.S. Treasury par yield, from the Treasury Department&rsquo;s
+            daily yield curve file. The date is shown next to the figure.
+          </li>
+          <li>
+            <span className="font-semibold">Beta.</span> The levered beta published by Finnhub. The provider does not disclose its exact
+            calculation window, and price history is not available on the free tier to recalculate it. Betas below 0.5 or above 2.0 are
+            flagged for a cross-check.
+          </li>
+          <li>
+            <span className="font-semibold">Equity risk premium.</span> 5.0%, the figure recommended by Kroll (reaffirmed September 2026).
+            It is an assumption, not something that can be observed; common estimates range from about 4% to 6%. Kroll pairs its premium
+            with a 20-year Treasury yield; this tool uses the 10-year, which is the more common convention in banking.
+          </li>
+          <li>
+            <span className="font-semibold">Cost of debt.</span> The latest fiscal year&rsquo;s interest expense divided by total debt. That
+            reflects the coupons on debt issued in the past, so it is floored at the risk-free rate: a company cannot borrow today for less
+            than the government. If no sensible rate can be calculated, the risk-free rate plus 2% is used as a labelled placeholder. The
+            yield on the company&rsquo;s traded bonds would be the better input where known.
+          </li>
+          <li>
+            <span className="font-semibold">Weights.</span> Equity at market value (market cap) and debt at book value as a stand-in for
+            market value.
+          </li>
+        </ul>
+        <p>Every one of these inputs can be changed on the DCF page, and the valuation updates immediately.</p>
       </Section>
 
       <Section id="quality" title="Data quality checks">
@@ -206,6 +341,8 @@ P / E        = share price ÷ LTM diluted EPS`}</Formula>
           </li>
           <li>Segment data is read from each 10-K&rsquo;s data file and depends on standard segment tagging; coverage is not universal.</li>
           <li>Companies that have recently listed may have fewer than five years of history, or none.</li>
+          <li>Comps depend on the peer set, and automatically suggested peers are often poor matches. Review them before relying on the result.</li>
+          <li>The DCF defaults extend recent history. They are a starting point, not a forecast; cyclical companies in particular need the assumptions reviewed.</li>
           <li>This is an educational tool. It is not investment advice.</li>
         </ul>
       </Section>

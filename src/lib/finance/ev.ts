@@ -106,9 +106,17 @@ export function chooseShares(cover: number | null, provider: number | null, prov
   return { shares: null, basis: "none", note: "Not available: no share count from either the SEC filing cover or the market data provider." };
 }
 
-/** A valuation multiple, or null when it is not meaningful (zero or negative inputs). */
+/** Multiples above this are treated as not meaningful (the denominator is close to zero). */
+export const MAX_MEANINGFUL_MULTIPLE = 100;
+
+/**
+ * A valuation multiple, or null when it is not meaningful: missing inputs,
+ * zero or negative earnings, or a result above 100x (which only happens when
+ * the earnings figure is close to zero and says nothing about value).
+ */
 export function multiple(numerator: number | null, denominator: number | null): number | null {
   if (numerator === null || denominator === null) return null;
   if (!(denominator > 0) || !(numerator > 0)) return null;
-  return numerator / denominator;
+  const m = numerator / denominator;
+  return m > MAX_MEANINGFUL_MULTIPLE ? null : m;
 }
