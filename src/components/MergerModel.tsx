@@ -102,6 +102,11 @@ function Field({ label, note, judgment, children }: { label: string; note?: Reac
   );
 }
 
+/** New debt makes up whatever cash and stock do not cover (never negative). */
+function plugDebt(pctCash: number, pctStock: number): number {
+  return Math.max(0, Number((1 - pctCash - pctStock).toFixed(4)));
+}
+
 const EXAMPLES: [string, string, string][] = [
   ["JBL", "SANM", "Jabil buys Sanmina"],
   ["CCK", "SLGN", "Crown buys Silgan"],
@@ -246,8 +251,8 @@ export default function MergerModel({ initialAcquirer, initialTarget }: { initia
 
       {data && inp && result && parties && costs && (
         <>
-          {/* Headline */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Headline. Results are hidden while the deal terms are not valid. */}
+          <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${result.valid ? "" : "hidden"}`}>
             {result.years.map((y) => (
               <div key={y.year} className="card px-4 py-3">
                 <div className="text-[11px] uppercase tracking-wider text-muted">Year {y.year} EPS accretion / (dilution)</div>
@@ -268,8 +273,9 @@ export default function MergerModel({ initialAcquirer, initialTarget }: { initia
 
           {!result.valid && (
             <div className="card border-l-4 !border-l-fail px-4 py-3 text-sm">
+              <div className="font-semibold">Fix the deal terms to see the results.</div>
               {result.issues.map((t) => (
-                <div key={t}>{t}</div>
+                <div key={t} className="text-muted">{t}</div>
               ))}
             </div>
           )}
@@ -298,12 +304,12 @@ export default function MergerModel({ initialAcquirer, initialTarget }: { initia
                 label="Paid in cash"
                 note={`From ${data.acquirer.ticker}'s own cash ($${m(data.acquirer.cash)}M on the latest balance sheet). Default mix: half stock, the rest from cash up to half of that balance, and any remainder borrowed. The three must add to 100% (now ${fmtPct(inp.pctCash + inp.pctStock + inp.pctDebt, 0)}).`}
               >
-                <Num value={inp.pctCash} onChange={(v) => set({ pctCash: v })} label="Percent cash" decimals={0} />
+                <Num value={inp.pctCash} onChange={(v) => set({ pctCash: v, pctDebt: plugDebt(v, inp.pctStock) })} label="Percent cash" decimals={0} />
               </Field>
               <Field label="Paid in stock" note={`New ${data.acquirer.ticker} shares issued to the target's shareholders at ${fmtPrice(data.acquirer.price)}.`}>
-                <Num value={inp.pctStock} onChange={(v) => set({ pctStock: v })} label="Percent stock" decimals={0} />
+                <Num value={inp.pctStock} onChange={(v) => set({ pctStock: v, pctDebt: plugDebt(inp.pctCash, v) })} label="Percent stock" decimals={0} />
               </Field>
-              <Field label="Paid with new debt" note="Money borrowed to fund the purchase.">
+              <Field label="Paid with new debt" note="Money borrowed to fund the purchase. Adjusts automatically to make up the balance when you change cash or stock.">
                 <Num value={inp.pctDebt} onChange={(v) => set({ pctDebt: v })} label="Percent debt" decimals={0} />
               </Field>
               <Field
@@ -456,7 +462,7 @@ export default function MergerModel({ initialAcquirer, initialTarget }: { initia
           </div>
 
           {/* Pro forma EPS */}
-          <div>
+          <div className={result.valid ? "" : "hidden"}>
             <h2 className="section-title">Pro forma earnings per share</h2>
             <div className="card p-2 sm:p-4">
               <div className="overflow-x-auto">
@@ -504,7 +510,7 @@ export default function MergerModel({ initialAcquirer, initialTarget }: { initia
           </div>
 
           {/* Why */}
-          <div className="grid lg:grid-cols-2 gap-5">
+          <div className={`grid lg:grid-cols-2 gap-5 ${result.valid ? "" : "hidden"}`}>
             <div className="card p-4 text-sm">
               <h3 className="text-base font-semibold text-navy mb-2">Why it is {result.years[0].accretionPctNoSynergies !== null && result.years[0].accretionPctNoSynergies >= 0 ? "accretive" : "dilutive"} before synergies</h3>
               <table className="w-full">

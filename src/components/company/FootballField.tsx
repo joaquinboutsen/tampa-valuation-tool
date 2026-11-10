@@ -202,7 +202,9 @@ export default function FootballField({
                             </div>
                           </>
                         ) : (
-                          <div className="absolute inset-y-0 left-0 flex items-center text-[12px] text-muted italic">not available</div>
+                          <div className="absolute inset-y-0 left-0 flex items-center text-[12px] text-muted italic">
+                            {b.group === "Precedent transactions" && /^Enter/.test(b.detail) ? "enter multiples below to add this bar" : "not available"}
+                          </div>
                         )}
                       </div>
                     </div>
