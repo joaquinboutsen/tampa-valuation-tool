@@ -15,6 +15,7 @@ import {
 import type { DcfDefaults } from "@/lib/finance/dcfDefaults";
 import { peerStats, type CompRow } from "@/lib/finance/comps";
 import { fmtDate, fmtM, fmtMultiple, fmtPct, fmtPrice, fmtShares } from "@/lib/format";
+import DownloadButton from "../DownloadButton";
 
 /* -------------------------- remembered edits ---------------------------- */
 
@@ -109,7 +110,17 @@ function How({ children, judgment }: { children: React.ReactNode; judgment?: boo
 
 /* ------------------------------ the model ------------------------------- */
 
-export default function DcfModel({ defaults, ticker, provider }: { defaults: DcfDefaults; ticker: string; provider: string }) {
+export default function DcfModel({
+  defaults,
+  ticker,
+  companyName,
+  provider,
+}: {
+  defaults: DcfDefaults;
+  ticker: string;
+  companyName: string;
+  provider: string;
+}) {
   const d0 = defaults.assumptions as DcfAssumptions;
   const w0 = defaults.waccInputs as WaccInputs;
   const [a, setA] = useState<DcfAssumptions>(d0);
@@ -225,6 +236,27 @@ export default function DcfModel({ defaults, ticker, provider }: { defaults: Dcf
             WACC {wacc ? fmtPct(wacc.wacc, 2) : "n/a"} · {provider}
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 -mt-4">
+        <DownloadButton
+          kind="dcf"
+          label="Download this DCF as Excel"
+          getPayload={() => ({
+            ticker,
+            companyName,
+            baseLabel: defaults.baseLabel,
+            yearLabels: defaults.yearLabels,
+            assumptions: { ...a, wacc: wacc?.wacc ?? 0 },
+            waccInputs: w,
+            bridge: defaults.bridge,
+            currentPrice: price,
+            derivations: Object.values(defaults.derivations),
+            riskFreeDate: defaults.riskFree?.date ?? null,
+            balanceDate: defaults.balanceDate,
+          })}
+        />
+        <span className="text-xs text-muted">A working spreadsheet with live formulas and your current inputs. Inputs are in blue.</span>
       </div>
 
       {warnings.length > 0 && (

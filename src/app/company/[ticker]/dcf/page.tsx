@@ -34,7 +34,7 @@ export default async function DcfPage({ params }: Props) {
           updates immediately.
         </p>
         {defaults.available && defaults.assumptions && defaults.waccInputs ? (
-          <DcfModel defaults={defaults} ticker={ticker} provider={market.provider} />
+          <DcfModel defaults={defaults} ticker={ticker} companyName={pkg.profile.name} provider={market.provider} />
         ) : (
           <div className="card border-l-4 !border-l-gold px-4 py-4 text-sm leading-relaxed max-w-3xl">
             <div className="font-semibold text-navy mb-1">DCF not shown for {pkg.profile.name}</div>

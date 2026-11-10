@@ -7,6 +7,7 @@ export const SITE = {
   authorLine: "Master's in Finance candidate, University of Tampa",
   linkedin: "https://www.linkedin.com/in/joaquin-boutsen-37554a226",
   repo: "https://github.com/joaquinboutsen/tampa-valuation-tool",
+  url: "https://tampa-valuation-tool.vercel.app",
 };
 
 export interface Featured {

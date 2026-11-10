@@ -10,6 +10,15 @@ const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-source-seri
 export const metadata: Metadata = {
   title: { default: `${SITE.name} | ${SITE.author}`, template: `%s | ${SITE.name}` },
   description: SITE.tagline,
+  metadataBase: new URL(SITE.url),
+  authors: [{ name: SITE.author, url: SITE.linkedin }],
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    title: `${SITE.name} | ${SITE.author}`,
+    description: SITE.tagline,
+    url: SITE.url,
+  },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
