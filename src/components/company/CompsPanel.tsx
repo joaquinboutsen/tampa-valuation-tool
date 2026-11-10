@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { impliedRanges, MULTIPLE_LABELS, peerStats, type CompRow, type MultipleKey, type TargetBasis } from "@/lib/finance/comps";
 import { positionInSet, type Stats } from "@/lib/finance/stats";
 import { peersKey, readSession, writeSession } from "@/lib/clientStore";
+import DownloadButton from "../DownloadButton";
 import { fmtM, fmtMultiple, fmtPct, fmtPrice } from "@/lib/format";
 
 interface CompsResponse {
@@ -273,6 +274,20 @@ export default function CompsPanel({ ticker, initialPeers }: { ticker: string; i
           <button type="button" className="link" onClick={() => { setExcluded(new Set()); load(null); }}>
             Reset to suggested peers
           </button>
+          <span className="sm:ml-auto">
+            <DownloadButton
+              kind="comps"
+              label="Download as Excel"
+              getPayload={() => ({
+                ticker,
+                target: data.target,
+                peers: included,
+                excluded: data.peers.filter((p) => !p.error && excluded.has(p.ticker)),
+                basis: data.basis,
+                provider: data.provider,
+              })}
+            />
+          </span>
         </form>
       </div>
 
