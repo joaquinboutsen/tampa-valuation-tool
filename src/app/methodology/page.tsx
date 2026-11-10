@@ -38,6 +38,8 @@ export default function Methodology() {
           ["comps", "Trading comps"],
           ["dcf", "DCF"],
           ["wacc", "WACC"],
+          ["football", "Football field"],
+          ["merger", "Merger model"],
           ["quality", "Data quality checks"],
           ["financials", "Financial institutions"],
           ["limits", "Limitations"],
@@ -305,6 +307,94 @@ WACC = equity ÷ (equity + debt) × cost of equity
           </li>
         </ul>
         <p>Every one of these inputs can be changed on the DCF page, and the valuation updates immediately.</p>
+      </Section>
+
+      <Section id="football" title="Football field">
+        <p>
+          The football field shows the implied share price from each method as a horizontal bar, with the current share price as a dashed
+          line. It adds no new calculation; it summarizes the others.
+        </p>
+        <ul className="list-disc pl-5 space-y-2">
+          <li>
+            <span className="font-semibold">52-week trading range.</span> The lowest and highest share price over the past year, from Finnhub.
+          </li>
+          <li>
+            <span className="font-semibold">Trading comps.</span> One bar per multiple. Each runs from the peer 25th percentile to the 75th
+            percentile multiple, applied to the company&rsquo;s own figure, with the median marked. The peer set is the one chosen on the
+            Trading comps tab.
+          </li>
+          <li>
+            <span className="font-semibold">DCF.</span> One bar per terminal value method. Each spans the centre of the sensitivity table:
+            the base case with WACC half a point either side, combined with terminal growth a quarter point either side or the exit multiple
+            one turn either side. Assumptions edited on the DCF tab carry over within the same browser tab.
+          </li>
+          <li>
+            <span className="font-semibold">Precedent transactions.</span> Optional, and entered by hand. There is no free, reliable public
+            database of the multiples paid in past acquisitions; they are sold by providers such as FactSet, Capital IQ and Dealogic. Rather
+            than invent figures, the page lets you enter a low and a high multiple from deals you have researched and applies them to the
+            company&rsquo;s LTM figure.
+          </li>
+        </ul>
+        <p>
+          Bars built on negative or missing figures are shown as not available. The chart is only as reliable as the peer set and the DCF
+          assumptions behind it, so a very wide bar is a signal to review the inputs, not a result in itself.
+        </p>
+      </Section>
+
+      <Section id="merger" title="Merger model (accretion / dilution)">
+        <p>
+          The merger model asks one question: if the acquirer buys the target on the stated terms, are the combined company&rsquo;s earnings
+          per share higher (accretive) or lower (dilutive) than the acquirer&rsquo;s on its own?
+        </p>
+        <Formula>{`Offer price      = target share price × (1 + premium)
+Purchase price   = offer price × target shares outstanding
+New shares       = stock portion of purchase price ÷ acquirer share price
+
+Pro forma net income = acquirer net income + target net income
+                     + synergies × (1 − tax rate)
+                     − interest on new debt × (1 − tax rate)
+                     − interest lost on cash used × (1 − tax rate)
+                     − extra D&A from asset write-ups × (1 − tax rate)
+
+Pro forma EPS        = pro forma net income ÷ (acquirer shares + new shares)
+Accretion (dilution) = pro forma EPS ÷ acquirer standalone EPS − 1
+
+Break-even synergies = (standalone EPS × pro forma shares − pro forma net income before synergies)
+                       ÷ (1 − tax rate)`}</Formula>
+        <ul className="list-disc pl-5 space-y-2">
+          <li>
+            <span className="font-semibold">Earnings.</span> LTM net income to common shareholders from SEC filings, held flat by default.
+            Consensus forecasts are not available from a free, licensed source, so growth is an input you can set for each company.
+          </li>
+          <li>
+            <span className="font-semibold">Share counts.</span> Shares outstanding for both companies. EPS in the model is net income
+            divided by shares outstanding, so it differs slightly from reported diluted EPS; the same basis is used before and after the
+            deal, which is what matters for the comparison.
+          </li>
+          <li>
+            <span className="font-semibold">Financing defaults.</span> Half stock; the other half from cash, limited to half of the
+            acquirer&rsquo;s cash balance, with any remainder borrowed. New debt costs the 10-year Treasury yield plus 2% by default, and cash
+            is assumed to have been earning the 3-month Treasury yield. All are inputs.
+          </li>
+          <li>
+            <span className="font-semibold">Judgment defaults</span> are labelled as assumptions on the page: a 30% premium, 2% transaction
+            fees, synergies of zero (so the break-even figure is easy to read), and synergies arriving half in year 1 and fully in year 2.
+          </li>
+          <li>
+            <span className="font-semibold">Fees</span> are paid in cash, which reduces interest income, but as one-time costs they are left
+            out of ongoing EPS.
+          </li>
+          <li>
+            <span className="font-semibold">Why a deal is accretive.</span> The page compares the target&rsquo;s earnings yield on the price
+            paid with the after-tax cost of each form of payment. For an all-stock deal this reduces to the familiar rule: it is accretive when
+            the acquirer&rsquo;s P/E is higher than the P/E paid for the target.
+          </li>
+        </ul>
+        <p>
+          <span className="font-semibold">Left out:</span> refinancing of the target&rsquo;s debt, a full purchase price allocation, changes
+          in the combined tax rate, share issuance costs and timing within the year. Accretion is arithmetic, not proof that a deal creates
+          value.
+        </p>
       </Section>
 
       <Section id="quality" title="Data quality checks">

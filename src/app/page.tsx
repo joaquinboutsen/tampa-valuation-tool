@@ -23,8 +23,8 @@ const MODULES: { title: string; body: string; live: boolean }[] = [
   { title: "Data quality checks", body: "Automatic tie-outs on the filing data: balance sheet balances, cash flow ties to cash, segments sum to total.", live: true },
   { title: "Trading comps", body: "Editable peer set with EV/Revenue, EV/EBITDA and P/E, and where the target sits in the range.", live: true },
   { title: "DCF", body: "Unlevered free cash flow, WACC from CAPM, two terminal value methods and sensitivity tables.", live: true },
-  { title: "Football field", body: "Implied share price ranges from each method against the current price.", live: false },
-  { title: "Merger model", body: "Pro forma EPS, accretion / dilution and breakeven synergies for any acquirer and target.", live: false },
+  { title: "Football field", body: "Implied share price ranges from each method against the current price.", live: true },
+  { title: "Merger model", body: "Pro forma EPS, accretion / dilution and breakeven synergies for any acquirer and target.", live: true },
 ];
 
 export default function Home() {
@@ -36,7 +36,8 @@ export default function Home() {
             A banker&rsquo;s valuation package for any US public company.
           </h1>
           <p className="mt-4 text-white/80 text-base sm:text-lg max-w-2xl mx-auto">
-            Type a ticker. Get the snapshot, trading comps and a DCF, built directly from SEC filings with every number sourced.
+            Type a ticker. Get the snapshot, trading comps, a DCF and a football field, built directly from SEC filings with every number
+            sourced.
           </p>
           <div className="mt-7 max-w-xl mx-auto">
             <SearchBox autoFocus onDark />

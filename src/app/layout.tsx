@@ -25,10 +25,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span className="hidden sm:inline text-xs text-white/70 truncate">by {SITE.author}</span>
             </Link>
             <nav className="flex items-center gap-4 sm:gap-6 text-sm text-white/85">
+              <Link href="/merger" className="hover:text-white whitespace-nowrap">
+                Merger model
+              </Link>
               <Link href="/methodology" className="hover:text-white">
                 Methodology
               </Link>
-              <a href={SITE.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+              <a href={SITE.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-white hidden sm:inline">
                 LinkedIn
               </a>
             </nav>

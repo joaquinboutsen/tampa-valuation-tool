@@ -59,7 +59,7 @@ export async function getSuggestedPeers(rawTicker: string): Promise<string[]> {
 /** 10-year Treasury yield, cached 6 hours. Null if the Treasury site cannot be reached. */
 export async function getRiskFreeRate(): Promise<RiskFreeRate | null> {
   try {
-    return await unstable_cache(() => fetchRiskFreeRate(), ["treasury-10y-v1"], { revalidate: 6 * 3600 })();
+    return await unstable_cache(() => fetchRiskFreeRate(), ["treasury-v2"], { revalidate: 6 * 3600 })();
   } catch {
     return null;
   }

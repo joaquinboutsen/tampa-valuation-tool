@@ -105,6 +105,45 @@ export function buildHistory(pkg: CompanyPackage): HistoryTable {
   };
 }
 
+/**
+ * Default tax rate: the effective rate over the last three fiscal years (total
+ * income tax ÷ total pre-tax income). If that cannot be calculated or falls
+ * outside 10% to 35%, the 21% U.S. federal statutory rate is used instead.
+ */
+export function deriveTaxRate(pkg: CompanyPackage): { rate: number; how: string; judgment: boolean } {
+  const fin = pkg.financials;
+  const n = fin.fiscalYears.length;
+  const pretaxRow = fin.income.find((r) => r.key === "pretaxIncome");
+  const taxRow = fin.income.find((r) => r.key === "incomeTax");
+  let sumTax = 0;
+  let sumPretax = 0;
+  let years = 0;
+  for (let i = Math.max(0, n - 3); i < n; i++) {
+    const p = pretaxRow?.values[i]?.value ?? null;
+    const t = taxRow?.values[i]?.value ?? null;
+    if (p !== null && t !== null) {
+      sumPretax += p;
+      sumTax += t;
+      years++;
+    }
+  }
+  const effective = years > 0 && sumPretax > 0 ? sumTax / sumPretax : null;
+  if (effective !== null && effective >= 0.1 && effective <= 0.35) {
+    return {
+      rate: effective,
+      how: `Effective rate over the last ${years} fiscal year${years > 1 ? "s" : ""}: total income tax ${mm(sumTax)} ÷ total pre-tax income ${mm(sumPretax)} = ${pct(effective)}.`,
+      judgment: false,
+    };
+  }
+  return {
+    rate: STATUTORY_TAX_RATE,
+    how: `${
+      effective === null ? "An effective tax rate cannot be calculated (pre-tax income is negative or not reported)" : `The historical effective rate of ${pct(effective)} is outside the normal 10% to 35% range`
+    }, so the U.S. federal statutory rate of 21% is used.`,
+    judgment: true,
+  };
+}
+
 export function buildDcfDefaults(pkg: CompanyPackage, market: MarketData, riskFree: RiskFreeRate | null): DcfDefaults {
   const fin = pkg.financials;
   const snap = buildValuationSnapshot(pkg, market);
@@ -200,34 +239,9 @@ export function buildDcfDefaults(pkg: CompanyPackage, market: MarketData, riskFr
   }
 
   /* Tax rate */
-  let sumTax = 0;
-  let sumPretax = 0;
-  let taxYears = 0;
-  const pretaxRow = fin.income.find((r) => r.key === "pretaxIncome");
-  const taxRow = fin.income.find((r) => r.key === "incomeTax");
-  for (let i = Math.max(0, n - 3); i < n; i++) {
-    const p = pretaxRow?.values[i]?.value ?? null;
-    const t = taxRow?.values[i]?.value ?? null;
-    if (p !== null && t !== null) {
-      sumPretax += p;
-      sumTax += t;
-      taxYears++;
-    }
-  }
-  const effective = taxYears > 0 && sumPretax > 0 ? sumTax / sumPretax : null;
-  let taxRate = STATUTORY_TAX_RATE;
-  if (effective !== null && effective >= 0.1 && effective <= 0.35) {
-    taxRate = effective;
-    d.tax = { label: "Tax rate", how: `Effective rate over the last ${taxYears} fiscal year${taxYears > 1 ? "s" : ""}: total income tax ${mm(sumTax)} ÷ total pre-tax income ${mm(sumPretax)} = ${pct(effective)}.` };
-  } else {
-    d.tax = {
-      label: "Tax rate",
-      how: `${
-        effective === null ? "An effective tax rate cannot be calculated (pre-tax income is negative or not reported)" : `The historical effective rate of ${pct(effective)} is outside the normal 10% to 35% range`
-      }, so the U.S. federal statutory rate of 21% is used.`,
-      judgment: true,
-    };
-  }
+  const taxDefault = deriveTaxRate(pkg);
+  const taxRate = taxDefault.rate;
+  d.tax = { label: "Tax rate", how: taxDefault.how, judgment: taxDefault.judgment };
 
   /* Cost of capital */
   if (!riskFree) return { ...fail("Not available: the 10-year Treasury yield could not be retrieved from the Treasury Department, so the cost of capital cannot be built."), history };
