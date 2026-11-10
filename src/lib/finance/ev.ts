@@ -67,6 +67,45 @@ export function evBridge(i: EvInputs): EvBridge {
   };
 }
 
+export interface ShareChoice {
+  shares: number | null;
+  basis: "sec-cover" | "provider" | "none";
+  note: string;
+}
+
+/**
+ * Which share count to use for market cap.
+ *
+ * Preference: the count printed on the cover of the latest SEC filing (an
+ * official, dated number). If the cover count is missing, or differs from the
+ * data provider's by more than 5% (typical of multi-class companies, where the
+ * cover lists one class only), the provider's total is used instead.
+ */
+export function chooseShares(cover: number | null, provider: number | null, providerName: string): ShareChoice {
+  if (cover !== null && cover > 0) {
+    if (provider === null || !(provider > 0)) {
+      return { shares: cover, basis: "sec-cover", note: "Shares outstanding from the cover of the latest SEC filing." };
+    }
+    const gap = Math.abs(cover / provider - 1);
+    if (gap <= 0.05) {
+      return { shares: cover, basis: "sec-cover", note: "Shares outstanding from the cover of the latest SEC filing." };
+    }
+    return {
+      shares: provider,
+      basis: "provider",
+      note: `The SEC cover-page count differs from ${providerName} by ${(gap * 100).toFixed(0)}% (usually multiple share classes), so the ${providerName} total is used.`,
+    };
+  }
+  if (provider !== null && provider > 0) {
+    return {
+      shares: provider,
+      basis: "provider",
+      note: `The filing cover does not report a single share count, so the ${providerName} total is used.`,
+    };
+  }
+  return { shares: null, basis: "none", note: "Not available: no share count from either the SEC filing cover or the market data provider." };
+}
+
 /** A valuation multiple, or null when it is not meaningful (zero or negative inputs). */
 export function multiple(numerator: number | null, denominator: number | null): number | null {
   if (numerator === null || denominator === null) return null;

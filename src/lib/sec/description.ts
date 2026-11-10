@@ -62,9 +62,11 @@ export function extractBusinessDescription(html: string): string | null {
   for (let i = 0; i < blocks.length; i++) {
     const h = item1Heading(blocks[i]);
     if (!h.isHeading) continue;
-    // Skip the table of contents: there, "Item 1A" follows within a few short lines.
-    const lookahead = blocks.slice(i + 1, i + 6).join(" ");
-    if (/item\s*1\s*a\b/i.test(lookahead) && lookahead.length < 600) continue;
+    // Skip the table of contents: there, "Item 1A" follows after only a few short
+    // lines (page numbers), with no real paragraph in between.
+    const next = blocks.slice(i + 1, i + 6);
+    const nextItem = next.findIndex((b) => /^item\s*1\s*a\b/i.test(b));
+    if (nextItem >= 0 && next.slice(0, nextItem).every((b) => b.length < 120)) continue;
     if (/item\s*1\s*a\b/i.test(blocks[i].slice(0, 300))) continue;
     const sameBlock = h.rest;
     const candidates = [sameBlock, ...blocks.slice(i + 1, i + 40)];
