@@ -356,13 +356,6 @@ export function buildFinancials(cf: CompanyFacts): Financials {
   const revenue = flowRow(ctx, "revenue", "Revenue", "USD", true);
   const costOfRevenue = flowRow(ctx, "costOfRevenue", "Cost of revenue");
   const grossProfit = flowRow(ctx, "grossProfit", "Gross profit");
-  const operatingIncome = flowRow(ctx, "operatingIncome", "Operating income (EBIT)");
-  const daReported = flowRow(ctx, "da", "Depreciation & amortization");
-  const dep = flowRow(ctx, "depreciation", "Depreciation");
-  const amort = flowRow(ctx, "amortization", "Amortization of intangibles");
-  const daSummed = derivedRow("daSummed", "Depreciation & amortization", [{ row: dep, sign: 1 }, { row: amort, sign: 1 }], "Depreciation + amortization of intangibles (the company does not report a combined D&A tag).");
-  const da = coalesceRows("da", "Depreciation & amortization", daReported, daSummed);
-  const ebitda = derivedRow("ebitda", "EBITDA", [{ row: operatingIncome, sign: 1 }, { row: da, sign: 1 }], "EBITDA = operating income + depreciation & amortization. Unadjusted: no add-backs for one-time items or stock compensation.", true);
   const interestGross = flowRow(ctx, "interestExpense", "Interest expense");
   const interestNet = negateRow(
     flowRow(ctx, "interestNet", "Net interest"),
@@ -370,6 +363,22 @@ export function buildFinancials(cf: CompanyFacts): Financials {
   );
   const interestExpense = coalesceRows("interestExpense", "Interest expense", interestGross, interestNet);
   const pretaxIncome = flowRow(ctx, "pretaxIncome", "Pre-tax income");
+  // Some companies do not report an operating income line. For them EBIT is built the
+  // textbook way: pre-tax income + interest expense. It then includes non-operating items.
+  const operatingIncomeReported = flowRow(ctx, "operatingIncome", "Operating income (EBIT)");
+  const operatingIncomeDerived = derivedRow(
+    "operatingIncomeDerived",
+    "Operating income (EBIT)",
+    [{ row: pretaxIncome, sign: 1 }, { row: interestExpense, sign: 1 }],
+    "The company does not report an operating income line, so EBIT is calculated as pre-tax income + interest expense. This includes any non-operating income or expense.",
+  );
+  const operatingIncome = coalesceRows("operatingIncome", "Operating income (EBIT)", operatingIncomeReported, operatingIncomeDerived);
+  const daReported = flowRow(ctx, "da", "Depreciation & amortization");
+  const dep = flowRow(ctx, "depreciation", "Depreciation");
+  const amort = flowRow(ctx, "amortization", "Amortization of intangibles");
+  const daSummed = derivedRow("daSummed", "Depreciation & amortization", [{ row: dep, sign: 1 }, { row: amort, sign: 1 }], "Depreciation + amortization of intangibles (the company does not report a combined D&A tag).");
+  const da = coalesceRows("da", "Depreciation & amortization", daReported, daSummed);
+  const ebitda = derivedRow("ebitda", "EBITDA", [{ row: operatingIncome, sign: 1 }, { row: da, sign: 1 }], "EBITDA = operating income + depreciation & amortization. Unadjusted: no add-backs for one-time items or stock compensation.", true);
   const incomeTax = flowRow(ctx, "incomeTax", "Income tax expense");
   const netIncome = flowRow(ctx, "netIncome", "Net income to common", "USD", true);
   const epsDiluted = flowRow(ctx, "epsDiluted", "Diluted EPS", "USD/share");

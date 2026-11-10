@@ -114,6 +114,11 @@ export default function Methodology() {
           derived.
         </p>
         <p>
+          Some companies do not report an operating income line at all. For those, EBIT is calculated the textbook way, as pre-tax income
+          plus interest expense, and marked as derived. That version includes any non-operating income or expense, so it is slightly less
+          clean than a reported operating income.
+        </p>
+        <p>
           <span className="font-semibold">This is unadjusted EBITDA.</span> It does not add back restructuring charges, impairments,
           stock-based compensation or other items that companies and analysts often exclude. It will therefore usually be lower than a
           company&rsquo;s own &ldquo;adjusted EBITDA&rdquo;, and lower than figures on Bloomberg or FactSet. The trade-off is deliberate:
@@ -341,6 +346,7 @@ WACC = equity ÷ (equity + debt) × cost of equity
           </li>
           <li>Segment data is read from each 10-K&rsquo;s data file and depends on standard segment tagging; coverage is not universal.</li>
           <li>Companies that have recently listed may have fewer than five years of history, or none.</li>
+          <li>The free market-data tier allows about 60 requests a minute across all visitors. A fresh peer table uses about 20, so opening several new companies&rsquo; comps within a minute can leave some prices blank until the limit resets. Tables are cached once loaded.</li>
           <li>Comps depend on the peer set, and automatically suggested peers are often poor matches. Review them before relying on the result.</li>
           <li>The DCF defaults extend recent history. They are a starting point, not a forecast; cyclical companies in particular need the assumptions reviewed.</li>
           <li>This is an educational tool. It is not investment advice.</li>

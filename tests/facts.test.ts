@@ -134,3 +134,27 @@ describe("unsupported companies", () => {
     expect(f.warnings.join(" ")).toMatch(/IFRS/);
   });
 });
+
+describe("EBIT when no operating income line is reported", () => {
+  it("falls back to pre-tax income + interest expense, flagged as derived", () => {
+    const cf = testCoFacts();
+    delete cf.facts["us-gaap"].OperatingIncomeLoss;
+    const k24 = { form: "10-K", accn: "0000000001-25-000001", filed: "2025-02-14" };
+    cf.facts["us-gaap"].IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest = {
+      units: { USD: [{ start: "2024-01-01", end: "2024-12-31", val: M(125), ...k24 }] },
+    };
+    const f = buildFinancials(cf);
+    const ebit = f.income.find((r) => r.key === "operatingIncome")!.values[1];
+    // Pre-tax income 125 + interest expense 20 = 145
+    expect(ebit.value).toBe(M(145));
+    expect(ebit.derived).toBe(true);
+    expect(ebit.note).toMatch(/pre-tax income \+ interest expense/);
+    // EBITDA = 145 + D&A 40 = 185
+    expect(f.income.find((r) => r.key === "ebitda")!.values[1].value).toBe(M(185));
+  });
+  it("prefers the reported operating income when it exists", () => {
+    const ebit = fin.income.find((r) => r.key === "operatingIncome")!.values[1];
+    expect(ebit.value).toBe(M(150));
+    expect(ebit.derived).toBeUndefined();
+  });
+});

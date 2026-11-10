@@ -87,21 +87,24 @@ export default function DcfModel({ defaults, ticker, provider }: { defaults: Dcf
   const [peerMedian, setPeerMedian] = useState<{ value: number; count: number } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Peer median EV/EBITDA for the exit multiple, loaded in the background.
-  useEffect(() => {
-    let cancelled = false;
+  const [peerState, setPeerState] = useState<"idle" | "loading" | "none">("idle");
+
+  // Peer median EV/EBITDA for the exit multiple. Loaded only on request, because
+  // building a peer table uses a large share of the free market-data allowance.
+  function loadPeerMedian() {
+    setPeerState("loading");
     fetch(`/api/comps?ticker=${encodeURIComponent(ticker)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((j: { peers?: CompRow[] } | null) => {
-        if (cancelled || !j?.peers) return;
-        const s = peerStats(j.peers.filter((p) => !p.error)).evEbitda;
-        if (s) setPeerMedian({ value: s.median, count: s.count });
+        const s = j?.peers ? peerStats(j.peers.filter((p) => !p.error)).evEbitda : null;
+        if (s) {
+          setPeerMedian({ value: s.median, count: s.count });
+          setA((p) => ({ ...p, exitMultiple: Number(s.median.toFixed(1)) }));
+          setPeerState("idle");
+        } else setPeerState("none");
       })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [ticker]);
+      .catch(() => setPeerState("none"));
+  }
 
   const wacc = useMemo(() => computeWacc({ ...w, taxRate: a.taxRate }), [w, a.taxRate]);
   const model = useMemo(() => ({ ...a, wacc: wacc?.wacc ?? NaN }), [a, wacc]);
@@ -544,9 +547,15 @@ export default function DcfModel({ defaults, ticker, provider }: { defaults: Dcf
                 <span>Exit multiple (EV / EBITDA)</span>
                 <NumInput value={a.exitMultiple} onChange={(v) => setA((p) => ({ ...p, exitMultiple: v }))} percent={false} label="Exit multiple" />
               </label>
-              {peerMedian && (
+              {peerMedian ? (
                 <button className="link" onClick={() => setA((p) => ({ ...p, exitMultiple: Number(peerMedian.value.toFixed(1)) }))}>
                   Use peer median ({fmtMultiple(peerMedian.value)}, {peerMedian.count} peers)
+                </button>
+              ) : peerState === "none" ? (
+                <span className="text-muted">Peer median not available right now; see the Trading comps tab.</span>
+              ) : (
+                <button className="link" disabled={peerState === "loading"} onClick={loadPeerMedian}>
+                  {peerState === "loading" ? "Loading peers…" : "Use the peer median instead"}
                 </button>
               )}
             </div>

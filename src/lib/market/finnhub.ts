@@ -1,9 +1,10 @@
 /**
  * Market data from Finnhub (https://finnhub.io), an official keyed API.
  *
- * Free tier: about 60 requests per minute. Each company page needs 3 requests
- * (quote, profile, metrics), and results are cached for 15 minutes, so a
- * ticker costs at most 12 requests per hour no matter how many people view it.
+ * Free tier: about 60 requests per minute. A company page needs 3 requests
+ * (quote, profile, metrics), cached for 15 minutes. A comps table needs 2 per
+ * peer, cached for an hour, plus one for the peer list, cached for a day.
+ * A complete comps table is also cached as a whole for 15 minutes.
  *
  * The API key lives in the FINNHUB_API_KEY environment variable on the server
  * and is never sent to the browser.
@@ -84,7 +85,8 @@ export function shapeMarketData(quote: Quote, profile: Profile2, metrics: Metric
     beta: num(m["beta"]),
     forwardPE: (() => {
       const f = num(m["forwardPE"]);
-      return f !== null && f > 0 ? f : null;
+      // Above 100x the forward earnings estimate is close to zero and the multiple is not meaningful.
+      return f !== null && f > 0 && f <= 100 ? f : null;
     })(),
     providerShares: sharesM !== null && sharesM > 0 ? sharesM * 1e6 : null,
     industry: profile.finnhubIndustry ?? null,
@@ -99,17 +101,28 @@ export function isConfigured(): boolean {
 /**
  * Fetches live market data. Throws MarketDataError on any failure, so that
  * failures are never stored in the cache (see src/lib/cached.ts).
+ *
+ * `light` mode is used for peers in a comps table. It makes two requests
+ * instead of three: the share count is taken from the provider's market cap
+ * divided by price rather than from a separate company-profile request. It is
+ * only a cross-check, since the SEC cover-page share count is used where it exists.
  */
-export async function fetchMarketData(ticker: string): Promise<MarketData> {
+export async function fetchMarketData(ticker: string, opts: { light?: boolean } = {}): Promise<MarketData> {
   const key = process.env.FINNHUB_API_KEY;
   if (!key) throw new MarketDataError("Market data is not configured on this deployment (no API key).");
   const symbol = encodeURIComponent(ticker.replace(/-/g, "."));
-  const [quote, profile, metrics] = await Promise.all([
+  const [quote, profileRaw, metrics] = await Promise.all([
     call<Quote>(`/quote?symbol=${symbol}`, key),
-    call<Profile2>(`/stock/profile2?symbol=${symbol}`, key),
-    // Metrics (52-week range, beta) are optional: the price still shows without them.
-    call<Metrics>(`/stock/metric?symbol=${symbol}&metric=all`, key).catch(() => ({}) as Metrics),
+    opts.light ? Promise.resolve<Profile2>({}) : call<Profile2>(`/stock/profile2?symbol=${symbol}`, key),
+    // Metrics (52-week range, beta, forward P/E) are optional for the target: the price still shows without them.
+    opts.light ? call<Metrics>(`/stock/metric?symbol=${symbol}&metric=all`, key) : call<Metrics>(`/stock/metric?symbol=${symbol}&metric=all`, key).catch(() => ({}) as Metrics),
   ]);
+  let profile = profileRaw;
+  if (opts.light) {
+    const capM = num(metrics.metric?.["marketCapitalization"]);
+    const px = num(quote.c);
+    if (capM !== null && px !== null && px > 0) profile = { shareOutstanding: capM / px };
+  }
   const shaped = shapeMarketData(quote, profile, metrics, new Date().toISOString());
   if (!shaped.available) throw new MarketDataError(shaped.reason ?? "No price available.");
   return shaped;
