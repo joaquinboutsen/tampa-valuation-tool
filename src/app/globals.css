@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #faf9f6;
+  --color-card: #ffffff;
+  --color-ink: #101b2d;
+  --color-navy: #12284b;
+  --color-navy-soft: #e9eef6;
+  --color-muted: #5b6676;
+  --color-line: #dcd9d1;
+  --color-line-soft: #ecebe6;
+  --color-gold: #9a7b3f;
+  --color-pass: #1c7448;
+  --color-pass-soft: #e6f3ec;
+  --color-fail: #b3261e;
+  --color-fail-soft: #fbeae8;
+  --color-na: #6b7280;
+  --color-na-soft: #f1f1ef;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
+}
+
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Financial tables: thin rules, right-aligned figures, sticky label column. */
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.fin-table th,
+.fin-table td {
+  padding: 6px 12px;
+}
+.fin-table thead th {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-navy);
+  border-bottom: 1.5px solid var(--color-navy);
+  white-space: nowrap;
+  text-align: right;
+}
+.fin-table thead th:first-child {
+  text-align: left;
+}
+.fin-table tbody td:first-child,
+.fin-table thead th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--color-card);
+  min-width: 190px;
+}
+.fin-table tbody tr.rule td {
+  border-top: 1px solid var(--color-line);
+}
+.fin-table tbody tr.total td {
+  font-weight: 600;
+}
+.fin-table tbody tr.sub td {
+  color: var(--color-muted);
+  font-style: italic;
+  font-size: 12.5px;
+  padding-top: 0;
+}
+.fin-table .ltm {
+  background: var(--color-navy-soft);
+}
+.fin-table tbody td.ltm:first-child {
+  background: var(--color-card);
+}
+
+.section-title {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  border-bottom: 2px solid var(--color-gold);
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+}
+
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+}
+
+.link {
+  color: var(--color-navy);
+  text-decoration: underline;
+  text-decoration-color: var(--color-gold);
+  text-underline-offset: 2px;
+}
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+details > summary {
+  cursor: pointer;
+}
