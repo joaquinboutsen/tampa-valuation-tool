@@ -14,6 +14,7 @@ interface CompsResponse {
   peerSource: string;
   maxPeers: number;
   provider: string;
+  missingPrices?: string[];
   error?: string;
 }
 
@@ -185,6 +186,19 @@ export default function CompsPanel({ ticker, initialPeers }: { ticker: string; i
           <button className="link" onClick={() => setError(null)}>
             Dismiss
           </button>
+        </div>
+      )}
+
+      {(data.missingPrices?.length || data.target.price === null) && (
+        <div className="card border-l-4 !border-l-gold px-4 py-3 text-sm leading-relaxed">
+          <span className="font-semibold text-navy">Some share prices did not load.</span>{" "}
+          {data.missingPrices?.length ? `Missing for ${data.missingPrices.join(", ")}. ` : ""}
+          The free market-data tier allows about 60 requests a minute across all visitors, and that limit was reached. Those companies are
+          left out of the statistics below. Wait a minute, then{" "}
+          <button className="link" onClick={() => load(peerTickers.length && data.peerSource === "custom" ? peerTickers : null)}>
+            reload the prices
+          </button>
+          .
         </div>
       )}
 

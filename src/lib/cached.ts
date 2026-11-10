@@ -64,3 +64,19 @@ export async function getRiskFreeRate(): Promise<RiskFreeRate | null> {
     return null;
   }
 }
+
+export const PEER_QUOTE_TTL_SECONDS = 3600;
+
+/**
+ * Market data for a peer in a comps table: two requests instead of three, and
+ * cached for an hour. Peer multiples do not need minute-level freshness, and
+ * this keeps a table of ten peers inside the provider's free-tier limit.
+ */
+export async function getPeerMarketData(rawTicker: string): Promise<MarketData> {
+  const ticker = normalizeTicker(rawTicker);
+  try {
+    return await unstable_cache(() => fetchMarketData(ticker, { light: true }), ["market-data-light-v1", ticker], { revalidate: PEER_QUOTE_TTL_SECONDS })();
+  } catch (e) {
+    return unavailable(e instanceof MarketDataError ? e.message : "The market data provider could not be reached.");
+  }
+}
